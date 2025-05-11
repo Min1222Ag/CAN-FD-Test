@@ -1,5 +1,12 @@
-# CAN-FD-Test
-There are test codes 
+# Description
+This repository is for evaluation of CAN messages using python-can.
+There are test codes and dataset.
+
+## Dataset
+- There are two types of dataset
+1. CAN messages
+2. CAN FD messages
+   - timestamp_canfd_message
 ## loopback_can_fd_test.py
 It is just for loopback test using vcan with socketCAN.
 - Result
