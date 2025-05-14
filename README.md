@@ -5,23 +5,32 @@ There are test codes and dataset.
 ## Dataset
 - There are two types of dataset
 1. CAN messages
+  - can1_message.csv
+  - can2_message.csv
 2. CAN FD messages
-   - timestamp_canfd_message
-## loopback_can_fd_test.py
-It is just for loopback test using vcan with socketCAN.
-- Result
-```Sent and received. Latency: 31.7 μs
- Sent and received. Latency: 23.2 μs
-Sent and received. Latency: 32.3 μs
-Sent and received. Latency: 24.0 μs
-Sent and received. Latency: 31.0 μs
-Sent and received. Latency: 23.2 μs
-Sent and received. Latency: 32.1 μs
-Sent and received. Latency: 32.6 μs
-Sent and received. Latency: 32.2 μs
-Sent and received. Latency: 31.1 μs
-Sent and received. Latency: 24.1 μs
-Sent and received. Latency: 34.2 μs
+   - timestamp_canfd_message.csv
+   - You need to change column 'timestamp' to 'Timestamp'
+   - 
+## Expected Result
 ```
+======== Summary ========
 
-- Because there is no CAN controller for loopback test, latency is low.
+[proc_fd_1] TX: 5, RX: 5
+proc_fd_1 Latency mean: 54368 ns, median: 43201 ns
+proc_fd_1 TX throughput: 900.69 msg/sec
+
+[proc_fd_2] TX: 5, RX: 5
+proc_fd_2 Latency mean: 44222 ns, median: 29916 ns
+proc_fd_2 TX throughput: 1264.33 msg/sec
+
+[proc_can_1] TX: 10, RX: 10
+proc_can_1 Latency mean: 35238 ns, median: 31775 ns
+proc_can_1 TX throughput: 2204.40 msg/sec
+
+[proc_can_2] TX: 10, RX: 10
+proc_can_2 Latency mean: 31981 ns, median: 23170 ns
+proc_can_2 TX throughput: 3069.62 msg/sec
+
+[Overall] Latency mean: 38838 ns
+[Overall] Total TX: 30, RX: 30
+```
