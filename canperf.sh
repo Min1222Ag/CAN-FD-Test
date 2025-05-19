@@ -190,7 +190,7 @@ check_input() {
                 shift
         done
         # Check if CAN tx_id is set by user
-        if [[ "$tx_id" == "notset" ]]; then
+        if [[ -z "$user_log_file" && "$tx_id" == "notset" ]]; then
                 echo "CAN routing message tx_id should be set by user."
                 usage
                 exit 1
@@ -223,37 +223,41 @@ check_input() {
         fi
 
         # Check if CAN data frame size is set by user
-        if [[ "$can_frame_data_size" == "notset" ]]; then
+        if [[ -z "$user_log_file" && "$can_frame_data_size" == "notset" ]]; then
                 echo "CAN data frame size should be set by user."
                 usage
                 exit 1
         fi
 
         # Check if time period for generating CAN traffic is set by user
-        if [[ "$time_gen" == "notset" ]]; then
+        if [[ -z "$user_log_file" && "$time_gen" == "notset" ]]; then
                 echo "time period for generating CAN traffic should be set by user."
                 usage
                 exit 1
         fi
 
         # Check if time gap between consecutive CAN frames is set by user
-        if [[ "$frame_gap_ms" == "notset" ]]; then
+        if [[ -z "$user_log_file" && "$frame_gap_ms" == "notset" ]]; then
                 echo "period between two consecutive generated CAN frames should be set by user."
                 usage
                 exit 1
         fi
 
-        if [[ -n "$user_log_file"]]; then
+        if [[ -n "$user_log_file" ]]; then
                 echo "Using provided log file: $user_log_file"
-                if [["{$can_tx_interface}" == "notset"]]; then  
+                if [[ "$can_tx_interface" == "notset" ]]; then  
                         echo "CAN tx interface must be set with -t or --can-tx"
                         exit 1
                 fi
                 time_gen=$(awk -F'[)(]' '{print $2}' "$user_log_file" | awk -F '.' '{print $1}' | tail -1)
                 time_gen=$((time_gen + 1))
                 user_log_mode="true"
+        fi
 
-        tx_id=$(printf 0x%x "${tx_id}")
+        if [[ "$tx_id" != "notset" ]]; then
+                tx_id=$(printf 0x%x "${tx_id}")
+        fi
+
         if [[ "${use_rx_interface}" == "true" ]]; then
                 rx_id=$(printf 0x%x "${rx_id}")
                 echo "Transmit CAN id         : ${tx_id}"
@@ -346,10 +350,16 @@ run_perf() {
         fi
 
         # Start cangen on can_tx_interface interface with requested frame size and gap
+        if [[ -n "$user_log_file" ]]; then
+                cp "$user_log_file" "$tx_log"
+                canplayer -I "$tx_log" &
+                pid_cangen=$!
+        else
         timeout "${time_gen}" cangen "${can_tx_interface}" -g "${frame_gap_ms}" -p 10 -b -I "${tx_id}" \
                 -L "${can_frame_data_size}" -D "${payload_data}" "${gen_frames_opt}" -v -v >${tx_log} &
         pid_cangen=$!
-
+        fi
+        
         # Compute M7 load during the canperf run
         local m7_load_file="/tmp/m7_load"
 
@@ -379,7 +389,12 @@ run_perf() {
 display_report() {
         echo "Generating report..."
         tx_frames_count=$(wc -l ${tx_log} | awk '{ print $1 }')
-        tx_bytes=$(awk -F'[][]' '{print $2}' ${tx_log} | awk '{ sum += $1 } END { print sum }')
+        if [[ -n "$user_log_file" ]]; then
+                tx_bytes=$(awk -F '#' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
+        else
+                tx_bytes=$(awk -F'[][]' '{print $2}' ${tx_log} | awk '{ sum += $1 } END { print sum }')
+        fi
+
         if [[ ! "${tx_bytes}" =~ ${integer_regex} ]]; then
                 echo "No frames have been transmitted. Please check your connections."
                 tx_bytes=0
@@ -432,3 +447,4 @@ check_input "$@"
 setup_can
 run_perf
 display_report
+
