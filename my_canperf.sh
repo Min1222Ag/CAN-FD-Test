@@ -399,7 +399,8 @@ display_report() {
         tx_frames_count=$(wc -l ${tx_log} | awk '{ print $1 }')
         if [[ -n "$user_log_file" ]]; then
                 if grep -q '##' "${tx_log}"; then
-                        x_bytes=$(awk -F '##' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
+                        tx_bytes=$(awk -F '##' '{payload=substr($2, 2); sum += length(payload)/2} END {print int(sum)}' "${tx_log}")
+
                 else
                         tx_bytes=$(awk -F '#' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
                 fi
