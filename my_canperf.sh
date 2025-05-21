@@ -249,9 +249,15 @@ check_input() {
                         echo "CAN tx interface must be set with -t or --can-tx"
                         exit 1
                 fi
-                time_gen=$(awk -F'[)(]' '{print $2}' "$user_log_file" | awk -F '.' '{print $1}' | tail -1)
-                time_gen=$((time_gen + 1))
+                #time_gen=$(awk -F'#' '{print $2}' "$user_log_file" | awk -F '.' '{print $1}' | tail -1)
+                #time_gen=$((time_gen + 1))
+
+                time_start=$(awk -F'#' 'NR==1 {print $2}' "$user_log_file")
+                time_end=$(awk -F'#' 'END {print $2}' "$user_log_file")
+                time_gen=$(awk -v start="$time_start" -v end="$time_end" 'BEGIN { print end - start }')
                 user_log_mode="true"
+
+                
         fi
 
         if [[ "$tx_id" != "notset" ]]; then
@@ -352,6 +358,7 @@ run_perf() {
         # Start cangen on can_tx_interface interface with requested frame size and gap
         if [[ -n "$user_log_file" ]]; then
                 cp "$user_log_file" "$tx_log"
+                # add can interface to fit in format
                 sed -i -E 's/^(\([0-9]+\.[0-9]+\)) /\1 can0 /' "$tx_log"
                 canplayer -I "$tx_log" &
                 pid_cangen=$!
@@ -391,7 +398,11 @@ display_report() {
         echo "Generating report..."
         tx_frames_count=$(wc -l ${tx_log} | awk '{ print $1 }')
         if [[ -n "$user_log_file" ]]; then
-                tx_bytes=$(awk -F '#' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
+                if grep -q "##" "${tx_log}"; then
+                        x_bytes=$(awk -F '##' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
+                else
+                        tx_bytes=$(awk -F '#' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
+                fi
         else
                 tx_bytes=$(awk -F'[][]' '{print $2}' ${tx_log} | awk '{ sum += $1 } END { print sum }')
         fi
