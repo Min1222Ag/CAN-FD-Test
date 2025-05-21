@@ -249,15 +249,12 @@ check_input() {
                         echo "CAN tx interface must be set with -t or --can-tx"
                         exit 1
                 fi
-                #time_gen=$(awk -F'#' '{print $2}' "$user_log_file" | awk -F '.' '{print $1}' | tail -1)
-                #time_gen=$((time_gen + 1))
 
-                time_start=$(awk -F'#' 'NR==1 {print $2}' "$user_log_file")
-                time_end=$(awk -F'#' 'END {print $2}' "$user_log_file")
-                time_gen=$(awk -v start="$time_start" -v end="$time_end" 'BEGIN { print end - start }')
+                time_start=$(awk 'NR==1 {gsub(/[()]/, "", $1); print $1}' "$user_log_file")
+                time_end=$(awk 'END {gsub(/[()]/, "", $1); print $1}' "$user_log_file")
+                time_gen=$(echo "$time_end - $time_start" | bc)
+                time_gen=$(echo "($time_gen+0.999)/1" | bc) 
                 user_log_mode="true"
-
-                
         fi
 
         if [[ "$tx_id" != "notset" ]]; then
