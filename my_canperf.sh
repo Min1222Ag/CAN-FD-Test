@@ -51,6 +51,8 @@ tx_frames_count=0
 # Number of CAN frame received in Linux
 rx_frames_count=0
 
+# CAN message type
+is_can_fd = 0
 # Generation mode of payload. Default value is increment
 payload_random_mode="r"
 payload_increment_mode="i"
@@ -84,6 +86,7 @@ OPTIONS:
         -s | --size <bytes>              CAN frame data size in bytes. For CAN frames with variable size, use 'i'
         -l | --length <seconds>          The length of the CAN traffic generation session
         -D | --payload <hexvalue>        The payload of the CAN frame
+        --fd                             when the log file indicates CAN FD message
         --log <path_to_log_file>         Use an existing log file (overrides cangen)
         -h | --help                      help
 "
@@ -180,6 +183,9 @@ check_input() {
                                 exit 1
                         fi
                         ;;
+                --fd)
+                        is_can_fd =1
+                        ;;
                 -h | --help) usage && exit 0 ;;
                 *)
                         echo "$0: Invalid option $1"
@@ -253,8 +259,11 @@ check_input() {
                 time_start=$(awk 'NR==1 {gsub(/[()]/, "", $1); print $1}' "$user_log_file")
                 time_end=$(awk 'END {gsub(/[()]/, "", $1); print $1}' "$user_log_file")
                 time_gen=$(echo "$time_end - $time_start" | bc)
-                time_gen=$(echo "($time_gen+0.999)/1" | bc) 
+                time_gen=$(echo "($time_gen+0.999)/1" | bc)  
+
                 user_log_mode="true"
+
+                
         fi
 
         if [[ "$tx_id" != "notset" ]]; then
@@ -395,7 +404,7 @@ display_report() {
         echo "Generating report..."
         tx_frames_count=$(wc -l ${tx_log} | awk '{ print $1 }')
         if [[ -n "$user_log_file" ]]; then
-                if grep -q "##" "${tx_log}"; then
+                if [[is_can_fd = 1]]; then
                         x_bytes=$(awk -F '##' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
                 else
                         tx_bytes=$(awk -F '#' '{print $2}' "$tx_log" | awk '{ sum += length($1)/2 } END { print sum }')
@@ -456,4 +465,3 @@ check_input "$@"
 setup_can
 run_perf
 display_report
-
